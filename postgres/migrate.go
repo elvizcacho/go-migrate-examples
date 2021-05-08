@@ -33,8 +33,6 @@ func (m *Migrate) loadMigrate() error  {
 		dbURL,
 	)
 
-	fmt.Println("m.migrate", m.migrate)
-
 	if err != nil {
 		return err
 	}
