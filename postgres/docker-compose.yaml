@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13.1-alpine
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: adminpassword
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./db/pgdata:/var/lib/postgresql/data/pgdata
+      - ./db/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - migrations_postgres_network
+
+networks:
+  migrations_postgres_network:
+    external:
+      name: migrations_postgres_network
