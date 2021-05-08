@@ -1,9 +1,11 @@
-
-
 make migrate-up:
-	go run migrate.go -up
+	go run migrate.go -up -migrationsPath="./db/migrations"
 make migrate-down:
-	go run migrate.go -down
+	go run migrate.go -down -migrationsPath="./db/migrations"
+make migrate-up-all:
+	go run migrate.go -upAll -migrationsPath="./db/migrations"
+make migrate-down-all:
+	go run migrate.go -downAll -migrationsPath="./db/migrations"
 
 make migrate-create:
 	go run migrate.go -create="$(name)" -migrationsPath="./db/migrations"

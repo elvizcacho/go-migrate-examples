@@ -10,26 +10,41 @@ import (
 	"github.com/joho/godotenv"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
-func getMigrate() (*migrate.Migrate, error)  {
-	dbURL := fmt.Sprintf("postgres://%s:%s@localhost:5432/%s?sslmode=disable", os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
-	fmt.Println(dbURL)
-	return migrate.New(
-		"file:///Users/juanvizcaino/migrations/postgres/db/migrations",
-		dbURL,
-	)
+type Migrate struct {
+	migrationsPath string
+	migrate *migrate.Migrate
 }
 
-func up() error {
-	m, err := getMigrate()
+func (m *Migrate) loadMigrate() error  {
+	dbURL := fmt.Sprintf("postgres://%s:%s@localhost:5432/%s?sslmode=disable", os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
+	fmt.Println(dbURL)
+
+	absMigrationPath, err := filepath.Abs(m.migrationsPath)
+
+	if err != nil{
+		return err
+	}
+
+	m.migrate, err = migrate.New(
+		fmt.Sprintf("file://%s", absMigrationPath),
+		dbURL,
+	)
+
+	fmt.Println("m.migrate", m.migrate)
 
 	if err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (m *Migrate) up() error {
 	fmt.Println("Migrate up")
-	err = m.Up()
+	err := m.migrate.Steps(1)
 
 	if err != nil {
 		return err
@@ -39,10 +54,21 @@ func up() error {
 	return nil
 }
 
-func down() error  {
-	m, err := getMigrate()
+func (m *Migrate) upAll() error {
+	fmt.Println("Migrate up all")
+	err := m.migrate.Up()
 
-	err = m.Down()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Migrate up all was successful")
+	return nil
+}
+
+func (m *Migrate) down() error  {
+	fmt.Println("Migrate down")
+	err := m.migrate.Steps(-1)
 
 	if err != nil {
 		return err
@@ -52,23 +78,33 @@ func down() error  {
 	return nil
 }
 
-func getVersion() (string, error)  {
-	m, err := getMigrate()
+func (m *Migrate) downAll() error  {
+	fmt.Println("Migrate down all")
+	err := m.migrate.Down()
+
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	currentVersion, _, err := m.Version()
+	fmt.Println("Migrate down all was successful")
+	return nil
+}
+
+func (m *Migrate) getVersion() (string, error)  {
+	currentVersion, _, err := m.migrate.Version()
 
 	newVersion := fmt.Sprintf("%06d", currentVersion + 1)
 
 	return newVersion, err
 }
 
-func create(fileName string, migrationsPath string) error {
-	newVersion, err := getVersion()
-	upPath := fmt.Sprintf("%s/%s_%s.up.sql", migrationsPath, newVersion, fileName)
-	downPath := fmt.Sprintf("%s/%s_%s.down.sql", migrationsPath, newVersion, fileName)
+func (m *Migrate) create(fileName string) error {
+	fmt.Println("Create migration")
+
+	newVersion, err := m.getVersion()
+	fmt.Println("newVersion", newVersion)
+	upPath := fmt.Sprintf("%s/%s_%s.up.sql", m.migrationsPath, newVersion, fileName)
+	downPath := fmt.Sprintf("%s/%s_%s.down.sql", m.migrationsPath, newVersion, fileName)
 	err = ioutil.WriteFile(upPath, []byte{}, 0644)
 	err = ioutil.WriteFile(downPath, []byte{}, 0644)
 	if err != nil {
@@ -88,14 +124,25 @@ func main() {
 		return
 	}
 
+	var m Migrate
+
 	isDown := flag.Bool("down", false, "migrate-down")
 	isUp := flag.Bool("up", false, "migrate-up")
+	isUpAll := flag.Bool("upAll", false, "migrate-up-all")
+	isDownAll := flag.Bool("downAll", false, "migrate-down-all")
 	fileName := flag.String("create", "", "migrate-create")
 	migrationsPath := flag.String("migrationsPath", "", "migrate-create")
 	flag.Parse()
 
+	m.migrationsPath = *migrationsPath
+	err = m.loadMigrate()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	if *fileName != "" && *migrationsPath != "" {
-		err := create(*fileName, *migrationsPath)
+		err := m.create(*fileName)
 		if err != nil {
 			fmt.Println(err)
 			return 
@@ -103,8 +150,8 @@ func main() {
 		return
 	}
 
-	if *isDown {
-		err := down()
+	if *isDown && *migrationsPath != "" {
+		err := m.down()
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -112,8 +159,8 @@ func main() {
 		return
 	}
 
-	if *isUp {
-		err := up()
+	if *isUp && *migrationsPath != "" {
+		err := m.up()
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -121,6 +168,25 @@ func main() {
 		return
 	}
 
+	if *isUpAll && *migrationsPath != "" {
+		err := m.upAll()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		return
+	}
+
+	if *isDownAll && *migrationsPath != "" {
+		err := m.downAll()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		return
+	}
+
+	fmt.Println("Invalid arguments")
 	return
 }
 
