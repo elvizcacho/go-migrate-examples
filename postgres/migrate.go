@@ -12,69 +12,113 @@ import (
 	"os"
 )
 
-func up(m *migrate.Migrate)  {
-	fmt.Println("Migrate up")
-	err := m.Up()
+func getMigrate() (*migrate.Migrate, error)  {
+	dbURL := fmt.Sprintf("postgres://%s:%s@localhost:5432/%s?sslmode=disable", os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
+	fmt.Println(dbURL)
+	return migrate.New(
+		"file:///Users/juanvizcaino/migrations/postgres/db/migrations",
+		dbURL,
+	)
+}
+
+func up() error {
+	m, err := getMigrate()
 
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
+	}
+
+	fmt.Println("Migrate up")
+	err = m.Up()
+
+	if err != nil {
+		return err
 	}
 
 	fmt.Println("Migrate up was successful")
-	return
+	return nil
 }
 
-func down(m *migrate.Migrate)  {
-	err := m.Down()
+func down() error  {
+	m, err := getMigrate()
+
+	err = m.Down()
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Migrate down was successful")
+	return nil
+}
+
+func getVersion() (string, error)  {
+	m, err := getMigrate()
+	if err != nil {
+		return "", err
+	}
+
+	currentVersion, _, err := m.Version()
+
+	newVersion := fmt.Sprintf("%06d", currentVersion + 1)
+
+	return newVersion, err
+}
+
+func create(fileName string, migrationsPath string) error {
+	newVersion, err := getVersion()
+	upPath := fmt.Sprintf("%s/%s_%s.up.sql", migrationsPath, newVersion, fileName)
+	downPath := fmt.Sprintf("%s/%s_%s.down.sql", migrationsPath, newVersion, fileName)
+	err = ioutil.WriteFile(upPath, []byte{}, 0644)
+	err = ioutil.WriteFile(downPath, []byte{}, 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
+
+func main() {
+	err := godotenv.Load("./.env")
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-
-	fmt.Println("Migrate down was successful")
-	return
-}
-
-func create(fileName string)  {
-	path := fmt.Sprintf("./migrations/%s.sql", fileName)
-	ioutil.WriteFile(path, []byte{}, 0644)
-}
-
-func main() {
-	err := godotenv.Load("/Users/juanvizcaino/Projects/juapp/juapp-git-service/.env")
-	dbURL := fmt.Sprintf("postgres://%s:%s@localhost:5432/%s?sslmode=disable", os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
-	fmt.Println(dbURL)
-	m, err := migrate.New(
-		"file:///Users/juanvizcaino/Projects/juapp/juapp-git-service/db/migrations",
-		dbURL,
-	)
-
-	if err != nil {
-		panic(err)
-		return
-	}
-
-
 
 	isDown := flag.Bool("down", false, "migrate-down")
 	isUp := flag.Bool("up", false, "migrate-up")
 	fileName := flag.String("create", "", "migrate-create")
+	migrationsPath := flag.String("migrationsPath", "", "migrate-create")
 	flag.Parse()
 
-	fmt.Println(*isDown, *isUp)
+	if *fileName != "" && *migrationsPath != "" {
+		err := create(*fileName, *migrationsPath)
+		if err != nil {
+			fmt.Println(err)
+			return 
+		}
+		return
+	}
 
 	if *isDown {
-		down(m)
+		err := down()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		return
 	}
 
 	if *isUp {
-		up(m)
-	}
-
-	if *fileName != "" {
-		create(fileName)
+		err := up()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		return
 	}
 
 	return
