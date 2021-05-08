@@ -1,15 +1,15 @@
-make migrate-up:
+migrate-up:
 	go run migrate.go -up -migrationsPath="./db/migrations"
-make migrate-down:
+migrate-down:
 	go run migrate.go -down -migrationsPath="./db/migrations"
-make migrate-up-all:
+migrate-up-all:
 	go run migrate.go -upAll -migrationsPath="./db/migrations"
-make migrate-down-all:
+migrate-down-all:
 	go run migrate.go -downAll -migrationsPath="./db/migrations"
 
-make migrate-create:
+migrate-create:
 	go run migrate.go -create="$(name)" -migrationsPath="./db/migrations"
 
-make up:
+up:
 	docker network create migrations_postgres_network || true
 	docker-compose up -d
