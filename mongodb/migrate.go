@@ -102,8 +102,8 @@ func (m *Migrate) create(fileName string) error {
 
 	newVersion, err := m.getVersion()
 	fmt.Println("newVersion", newVersion)
-	upPath := fmt.Sprintf("%s/%s_%s.up.sql", m.migrationsPath, newVersion, fileName)
-	downPath := fmt.Sprintf("%s/%s_%s.down.sql", m.migrationsPath, newVersion, fileName)
+	upPath := fmt.Sprintf("%s/%s_%s.up.json", m.migrationsPath, newVersion, fileName)
+	downPath := fmt.Sprintf("%s/%s_%s.down.json", m.migrationsPath, newVersion, fileName)
 	err = ioutil.WriteFile(upPath, []byte{}, 0644)
 	err = ioutil.WriteFile(downPath, []byte{}, 0644)
 	if err != nil {
