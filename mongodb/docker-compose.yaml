@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+   mongo:
+    image: mongo:4.0.4
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - ./db/mongodata:/var/lib/postgresql/data/mongodata
+    networks:
+      - migrations_mongodb_network
+
+networks:
+  migrations_mongodb_network:
+    external:
+      name: migrations_mongodb_network

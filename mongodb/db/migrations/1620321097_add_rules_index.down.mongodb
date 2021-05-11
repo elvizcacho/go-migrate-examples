@@ -1,0 +1,6 @@
+[
+  {
+    "dropIndexes": "rules",
+    "index": "clientId_ruleName_index"
+  }
+]

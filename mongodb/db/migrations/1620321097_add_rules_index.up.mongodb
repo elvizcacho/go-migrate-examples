@@ -1,0 +1,14 @@
+[{
+  "createIndexes": "rules",
+  "indexes": [
+    {
+      "key": {
+        "clientId": 1,
+        "ruleName": 1
+      },
+      "name": "clientId_ruleName_index",
+      "unique": true,
+      "background": true
+    }
+  ]
+}]
